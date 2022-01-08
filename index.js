@@ -19,7 +19,9 @@ app.post('/', function (req, res) {
 			return response.json();
 		})
 		.then(function(json) {
-            res.send(json.text[0]);
+            res.send({
+                translation: json.text[0],
+				lang: json.lang});
 		})
 })
 
