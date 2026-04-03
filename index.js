@@ -7,24 +7,48 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post('/', function (req, res) {
-    let text = req.body.text;
-    let to = req.body.to ?? "en";
+app.post('/', async function (req, res) {
+  try {
+    const text = req.body.text;
+    const to = req.body.to ?? "en";
 
-    const API_KEY = process.env.YANDEX_API_KEY;
-	const LANG_CODE_TRANSLATED_TO = to;
+    const API_KEY = process.env.LANGBLY_API_KEY;
+    const url = "https://api.langbly.com/language/translate/v2";
+
     console.log(`Translating ${text} to ${to}`);
-	var url = "https://translate.yandex.net/api/v1.5/tr.json/translate?key=" + API_KEY + "&text=" + text + "&lang=" + LANG_CODE_TRANSLATED_TO+"&format=plain";
-	fetch(url)
-		.then(function(response) {
-			return response.json();
-		})
-		.then(function(json) {
-            res.send({
-                translation: json.text[0],
-				lang: json.lang});
-		})
-})
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": API_KEY
+      },
+      body: JSON.stringify({
+        q: text,
+        target: to
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Langbly error: ${response.status}`);
+    }
+
+    const json = await response.json();
+
+    const translation = json?.data?.translations?.[0];
+	
+ 	console.log(`Translated ${text} to ${translation?.translatedText}`);
+	  
+    res.send({
+      translation: translation?.translatedText,
+      detectedLanguage: translation?.detectedSourceLanguage
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "Translation failed" });
+  }
+});
 
 let port = process.env.PORT || 3000;
 
